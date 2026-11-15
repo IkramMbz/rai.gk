@@ -4,11 +4,11 @@
   <p>
     <strong>Repository Activity Inspector.</strong>
     <br>
-    Recover the full commit history of a GitLab repository in minutes, then scan its ZIP archives without extracting them and generate per-archive Markdown reports ready to feed into an AI model.
+    Recover the full commit history of a GitLab repository in minutes, then scan its ZIP archives without extracting them and generate JSONL records ready to feed into an AI model.
   </p>
 
   <p>
-    <img src="https://img.shields.io/badge/release-v0.2.0-white" alt="Release v0.2.0">
+    <img src="https://img.shields.io/badge/release-v0.3.0-white" alt="Release v0.3.0">
     <img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT License">
   </p>
 
@@ -23,7 +23,7 @@
   <p>
     <a href="#installation">Installation</a>&nbsp;&nbsp;&nbsp;&nbsp;
     <a href="#usage">Usage</a>&nbsp;&nbsp;&nbsp;&nbsp;
-    <a href="#report-contents">Report contents</a>&nbsp;&nbsp;&nbsp;&nbsp;
+    <a href="#data-formats">Data formats</a>&nbsp;&nbsp;&nbsp;&nbsp;
     <a href="LICENSE">License</a>
   </p>
 
@@ -34,10 +34,10 @@
 
 It works in two steps:
 
-1. **Commit history (GitLab).** A browser script walks through every page of a branch's commit list and exports the complete history (date, author, title, SHA) to a Markdown file.
-2. **Archive scan (optional, for deeper analysis).** A Python script audits ZIP exports of the repository without extracting them, and matches each archive to its commit to add the exact date and branch(es) to the report.
+1. **Commit history (GitLab).** A browser script walks through every page of a branch's commit list and exports the complete history (SHA, date, author, title, branch) to a JSONL file.
+2. **Archive scan (optional).** A Python script merges every exported history into `all_commits.jsonl`, then audits ZIP exports of the repository without extracting them, matches each archive to its commit, and writes one record per archive to `reports.jsonl`.
 
-Running step 1 first matters: without the commit history, the reports have no dates or branches, and the information fed to the LLM is incomplete.
+Run step 1 first: without the commit history, records have no date, author or branch, and the context fed to the LLM is incomplete.
 
 This provides the raw material for a later step: turning private development history into a dated, legitimate record of the work actually done.
 
@@ -49,9 +49,10 @@ Just skip this part ! No third-party dependency is required; the project only re
 
 ```
 .
-├── scripts/      # main.py, utils_*.py, gitlab-commits-history.js
-├── archives/     # your ZIPs and COMMIT_HISTORY_*.md files
-└── reports/      # generated reports
+├── scripts/            # main.py, utils_*.py, gitlab-commits-to-json.js
+├── archives/           # your ZIPs and COMMIT_HISTORY_*.jsonl files
+├── all_commits.jsonl   # every commit, deduplicated by SHA, oldest first
+└── reports.jsonl       # one record per archive
 ```
 
 ## Usage
@@ -65,7 +66,7 @@ Just skip this part ! No third-party dependency is required; the project only re
    ```
 
 2. Open the browser developer tools (right click → Inspect → **Console**).
-3. Paste the content of `scripts/gitlab-commits-history.js` and press Enter.
+3. Paste the content of `scripts/gitlab-commits-to-json.js` and press Enter.
    If the browser blocks pasting, type `allow pasting` in the console, press Enter, then paste again.
 4. Most repositories have several branches. Set the branch to export at the top of the script:
 
@@ -74,26 +75,28 @@ Just skip this part ! No third-party dependency is required; the project only re
    ```
 
    If you are not already on that branch's commits page, the script navigates to it. Re-run it once the page has loaded.
-5. The script clicks through every page with random 3-6 second pauses, then downloads `COMMIT_HISTORY_<branch>.md`.
-6. Repeat for each branch you want, then move all the `COMMIT_HISTORY_*.md` files into the `archives/` (folder at the project root).
+5. The script clicks through every page with random 3-6 second pauses, then downloads `COMMIT_HISTORY_<branch>.jsonl`.
+6. Repeat for each branch you want, then move all the `COMMIT_HISTORY_*.jsonl` files into `archives/` (at the project root).
 
 Notes:
 - Progress is saved in `localStorage`, so an interrupted run resumes where it stopped.
 - You can export at any time from the console with `window.__commitScrape.download()`.
-- A `/` in a branch name becomes `_` in the file name (`feature/foo` → `COMMIT_HISTORY_feature_foo.md`).
+- The real branch name is stored in each line (`"branch"`). Only the file name replaces `/` with `_` (`feature/foo` → `COMMIT_HISTORY_feature_foo.jsonl`).
 
-### Step 2: Scan the repository archives (optional)
+### Step 2: Build the commit list and scan the archives
 
-1. Download the repository ZIPs from GitLab (one per commit or branch state you want to analyze) and place them in `archives/`, next to the `COMMIT_HISTORY_*.md` files. The ZIP file name must contain the commit SHA, which is the case for GitLab's default export names.
+1. Optionally, download the repository ZIPs from GitLab (one per commit or branch state you want to analyze) and place them in `archives/`, next to the `COMMIT_HISTORY_*.jsonl` files. The ZIP file name must contain the commit SHA, which is the case for GitLab's default export names.
 2. Run:
 
    ```bash
    python scripts/main.py
    ```
 
-Each archive produces one Markdown report in `reports/`, and the console prints only the total number of archives processed.
+This produces:
+- `all_commits.jsonl`: all commits from every `COMMIT_HISTORY_*.jsonl`, deduplicated by SHA, sorted oldest to newest, with the `branches` of each commit merged. Generated even without any ZIP.
+- `reports.jsonl`: one record per ZIP archive.
 
-If no `COMMIT_HISTORY_*.md` file is found, reports are still generated but the date and branch lines stay empty.
+Without any `COMMIT_HISTORY_*.jsonl`, `all_commits.jsonl` is not created and records are still generated, but `date`, `author`, `title` and `branches` stay empty.
 
 ## What it extracts
 
@@ -105,25 +108,54 @@ If no `COMMIT_HISTORY_*.md` file is found, reports are still generated but the d
 | `docker-compose.yml` / `.yaml`, `compose.yml` / `.yaml` | All service names, with `container_name` when declared |
 | `requirements.txt`          | All Python package names, deduplicated                           |
 
-## Report contents
+## Data formats
 
-Each generated report is named `reports/<commit-sha>.md` when the archive matches a commit, otherwise `reports/<archive-name>.md`. It contains, in this order:
+Everything is JSONL: one JSON object per line. Lists and dicts stay native (no flattening, no loss), and files can be streamed, appended to and concatenated without reparsing.
 
-1. The archive name as title
-2. The repository date (ISO 8601), taken from the matching commit
-3. The branch(es) containing that commit, comma-separated (for example `main, development`)
-4. File and folder counts, before and after deduplication
-5. NPM dependencies (from every `package.json` found)
-6. Docker services (from every compose file found)
-7. Python dependencies (from every `requirements.txt` found)
-8. The list of unique folder names, sorted
-9. The list of unique file names, sorted (excluded files filtered out)
+### Commit history
 
-"Files found" counts every file in the archive. "Unique files" counts the files left after exclusions and deduplication, so it matches the list shown in the report.
+`archives/COMMIT_HISTORY_<branch>.jsonl`, one line per commit:
+
+```json
+{"sha":"a1b2c3d4...","iso":"2025-03-12T14:02:11+01:00","author":"...","title":"...","branch":"main"}
+```
+
+### All commits
+
+`all_commits.jsonl`, one line per unique SHA. Same fields, but `branch` becomes a `branches` list:
+
+```json
+{"iso":"2025-03-12T14:02:11+01:00","title":"...","author":"...","sha":"a1b2c3d4...","branches":["main","development"]}
+```
+
+### Record
+
+`reports.jsonl`, one line per archive. `id` is the commit SHA when the archive matches a commit, otherwise the archive name. Shown indented here for readability:
+
+```json
+{
+  "id": "a1b2c3d4",
+  "name": "project-main-a1b2c3d4",
+  "date": "2025-03-12T14:02:11+01:00",
+  "author": "...",
+  "title": "...",
+  "branches": ["main", "development"],
+  "counts": { "files": 1200, "unique_files": 340, "dirs": 210, "unique_dirs": 95 },
+  "npm": ["react", "next"],
+  "docker": { "db": "postgres_container" },
+  "python": ["flask"],
+  "dirs": ["src", "components"],
+  "files": ["page.tsx", "layout.tsx"]
+}
+```
+
+`counts.files` and `counts.dirs` include everything in the archive. `unique_files` and `unique_dirs` match the deduplicated lists, after exclusions for files.
+
+For LLM input, send a reduced view (only the fields you need) rather than the full records, since file and dir lists dominate the token cost.
 
 ## Customization
 
-Edit `scripts/utils_exclusions.py` to hide more files from the reports. Hidden files are still counted in "Files found". The following are excluded by default:
+Edit `scripts/utils_exclusions.py` to hide more files from records. Hidden files are still counted in `counts.files`. The following are excluded by default:
 
 - Fonts, images and videos, by extension
 - Source maps and `.frm` files

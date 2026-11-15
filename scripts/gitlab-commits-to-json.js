@@ -47,9 +47,9 @@
 
       store.set(sha, {
         sha,
-        title: (link.getAttribute('title') || link.textContent || '').trim(),
         iso: row.querySelector('time[data-testid="commit-authored-date"]')?.getAttribute('datetime') || null,
         author,
+        title: (link.getAttribute('title') || link.textContent || '').replace(/\s+/g, ' ').trim(),
       });
       added++;
     });
@@ -63,30 +63,16 @@
     }
   }
 
-  function toMarkdown() {
-    const commits = [...store.values()].sort((a, b) => (b.iso || '').localeCompare(a.iso || ''));
-    const byDay = new Map();
-    commits.forEach(c => {
-      const day = c.iso ? c.iso.slice(0, 10) : 'unknown-date';
-      if (!byDay.has(day)) byDay.set(day, []);
-      byDay.get(day).push(c);
-    });
-
-    let md = `# Commit history - ${BRANCH_NAME} Branch\n\nGenerated on ${new Date().toISOString()} - ${commits.length} commits\n\n`;
-    for (const [day, list] of byDay) {
-      md += `## ${day}\n\n`;
-      list.forEach(c => {
-        const title = c.title.replace(/\s+/g, ' ').trim();
-        md += `- **${c.iso || 'unknown'}** - ${title} _(by ${c.author || 'Unknown author'}, \`${c.sha.slice(0, 8)}\`)_\n`;
-      });
-      md += '\n';
-    }
-    return md;
+  function toJsonl() {
+    return [...store.values()]
+      .sort((a, b) => (b.iso || '').localeCompare(a.iso || ''))
+      .map(c => JSON.stringify({ ...c, branch: BRANCH_NAME }))
+      .join('\n') + '\n';
   }
 
   function download() {
-    const url = URL.createObjectURL(new Blob([toMarkdown()], { type: 'text/markdown;charset=utf-8' }));
-    const a = Object.assign(document.createElement('a'), { href: url, download: `COMMIT_HISTORY_${SAFE}.md` });
+    const url = URL.createObjectURL(new Blob([toJsonl()], { type: 'application/x-ndjson;charset=utf-8' }));
+    const a = Object.assign(document.createElement('a'), { href: url, download: `COMMIT_HISTORY_${SAFE}.jsonl` });
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -120,5 +106,5 @@
   }
 
   download();
-  console.log(`🎉 Done: ${store.size} commits → COMMIT_HISTORY_${SAFE}.md`);
+  console.log(`🎉 Done: ${store.size} commits → COMMIT_HISTORY_${SAFE}.jsonl`);
 })();
