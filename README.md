@@ -2,7 +2,7 @@
   <h1>rai.gk</h1>
 
   <p>
-    <strong>Repository Archive Inspector.</strong>
+    <strong>Repository Activity Inspector.</strong>
     <br>
     Recover the full commit history of a GitLab repository in minutes, then scan its ZIP archives without extracting them and generate per-archive Markdown reports ready to feed into an AI model.
   </p>
@@ -45,6 +45,15 @@ This provides the raw material for a later step: turning private development his
 
 Just skip this part ! No third-party dependency is required; the project only relies on the Python standard library. The browser script runs directly in the console. No virtual environment is needed either.
 
+## Project structure
+
+```
+.
+├── scripts/      # main.py, utils_*.py, gitlab-commits-history.js
+├── archives/     # your ZIPs and COMMIT_HISTORY_*.md files
+└── reports/      # generated reports
+```
+
 ## Usage
 
 ### Step 1: Export the commit history from GitLab
@@ -56,7 +65,7 @@ Just skip this part ! No third-party dependency is required; the project only re
    ```
 
 2. Open the browser developer tools (right click → Inspect → **Console**).
-3. Paste the content of `gitlab-commits-history.js` and press Enter.
+3. Paste the content of `scripts/gitlab-commits-history.js` and press Enter.
    If the browser blocks pasting, type `allow pasting` in the console, press Enter, then paste again.
 4. Most repositories have several branches. Set the branch to export at the top of the script:
 
@@ -66,7 +75,7 @@ Just skip this part ! No third-party dependency is required; the project only re
 
    If you are not already on that branch's commits page, the script navigates to it. Re-run it once the page has loaded.
 5. The script clicks through every page with random 3-6 second pauses, then downloads `COMMIT_HISTORY_<branch>.md`.
-6. Repeat for each branch you want, then move all the `COMMIT_HISTORY_*.md` files into the `archives/` folder.
+6. Repeat for each branch you want, then move all the `COMMIT_HISTORY_*.md` files into the `archives/` (folder at the project root).
 
 Notes:
 - Progress is saved in `localStorage`, so an interrupted run resumes where it stopped.
@@ -79,7 +88,7 @@ Notes:
 2. Run:
 
    ```bash
-   python main.py
+   python scripts/main.py
    ```
 
 Each archive produces one Markdown report in `reports/`, and the console prints only the total number of archives processed.
@@ -114,7 +123,7 @@ Each generated report is named `reports/<commit-sha>.md` when the archive matche
 
 ## Customization
 
-Edit `utils_exclusions.py` to hide more files from the reports. Hidden files are still counted in "Files found". The following are excluded by default:
+Edit `scripts/utils_exclusions.py` to hide more files from the reports. Hidden files are still counted in "Files found". The following are excluded by default:
 
 - Fonts, images and videos, by extension
 - Source maps and `.frm` files

@@ -45,10 +45,10 @@ def process_zip(zip_path, reports_dir, commit=None):
     (reports_dir / filename).write_text(report, encoding="utf-8")
 
 def main():
-    script_dir = Path(__file__).resolve().parent
-    reports_dir = script_dir / "reports"
+    root = Path(__file__).resolve().parent.parent
+    reports_dir = root / "reports"
     reports_dir.mkdir(exist_ok=True)
-    archives_dir = script_dir / "archives"
+    archives_dir = root / "archives"
     zip_files = sorted(archives_dir.glob("*.zip"))
     if not zip_files:
         print(0)
