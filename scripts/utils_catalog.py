@@ -50,6 +50,6 @@ def sync_catalog(path, records):
     existing = path.read_text(encoding="utf-8") if path.is_file() else ""
     with path.open("a", encoding="utf-8") as f:
         if existing.strip():
-            f.write(("" if existing.endswith("\n") else "\n") + "\n\n\n")
+            f.write(("" if existing.endswith("\n") else "\n") + "\n\n\n/* NEW TECHNO */\n")
         f.write(lines)
     return len(missing)

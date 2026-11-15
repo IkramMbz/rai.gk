@@ -39,8 +39,8 @@ The end goal is a "making of" front-end that displays how your app evolved: stac
 It works in three steps:
 
 1. **Commit history (GitLab).** A browser script walks through every page of a branch's commit list and exports the complete history (SHA, date, author, title, branch) to a JSONL file.
-2. **Archive scan (optional).** A Python script merges every exported history into `all_commits.jsonl`, audits ZIP exports of the repository without extracting them, matches each archive to its commit, and writes `reports-full.jsonl` (private), `reports-public.jsonl` (sanitized) and `techCatalog.jsonl` (editable).
-3. **Front-end.** Copy `reports-public.jsonl` and your annotated `techCatalog.jsonl` into the front-end's `src/data/` folder.
+2. **Archive scan (optional).** A Python script merges every exported history into `all_commits.jsonl`, audits ZIP exports of the repository without extracting them, matches each archive to its commit, and writes `reports-full.jsonl` (private), `reports-public.jsonl` (sanitized) and `tech-catalog.jsonl` (editable).
+3. **Front-end.** Copy `reports-public.jsonl` and your annotated `tech-catalog.jsonl` into the front-end's `src/data/` folder.
 
 Run step 1 first: without the commit history, records have no date, author or branch.
 
@@ -48,7 +48,7 @@ Run step 1 first: without the commit history, records have no date, author or br
 
 > **Never put `reports-full.jsonl` or `all_commits.jsonl` in the front-end.** Anything imported by a front-end ends up in the bundle and can be downloaded by anyone, even if the UI never displays it.
 
-Only `reports-public.jsonl` and `techCatalog.jsonl` are meant to be shipped. The public report is built with a whitelist: only the fields below are copied, so a field added to the full report later does not leak by default.
+Only `reports-public.jsonl` and `tech-catalog.jsonl` are meant to be shipped. The public report is built with a whitelist: only the fields below are copied, so a field added to the full report later does not leak by default.
 
 | Field in full report | In public report | Why |
 | --- | --- | --- |
@@ -61,7 +61,7 @@ Only `reports-public.jsonl` and `techCatalog.jsonl` are meant to be shipped. The
 | `python`, `counts` | Yes | Stack and numbers |
 | `date` | Yes, reduced to `YYYY-MM-DD` | Time and timezone dropped |
 
-`techCatalog.jsonl` is also public once it is in the front-end, **including everything you write in `reason`**. Do not put client names, internal project names or anything under NDA in it.
+`tech-catalog.jsonl` is also public once it is in the front-end, **including everything you write in `reason`**. Do not put client names, internal project names or anything under NDA in it.
 
 Before publishing, review both files: even a library name can be confidential for a client under NDA. Add `archives/`, `all_commits.jsonl` and `reports-full.jsonl` to your `.gitignore`.
 
@@ -80,7 +80,7 @@ Just skip this part ! No third-party dependency is required; the project only re
 ├── all_commits.jsonl     # every commit, deduplicated by SHA, oldest first (private)
 ├── reports-full.jsonl    # one complete record per archive (private)
 ├── reports-public.jsonl  # sanitized records, safe for the front-end
-└── techCatalog.jsonl     # every detected technology + your annotations (for the front-end)
+└── tech-catalog.jsonl    # every detected technology + your annotations (for the front-end)
 ```
 
 ## Usage
@@ -125,13 +125,15 @@ This produces:
 - `all_commits.jsonl`: all commits from every `COMMIT_HISTORY_*.jsonl`, deduplicated by SHA, sorted oldest to newest, with the `branches` of each commit merged. Generated even without any ZIP.
 - `reports-full.jsonl`: one complete record per ZIP archive, sorted by date (undated last). **Private.**
 - `reports-public.jsonl`: the same records reduced to the whitelist above.
-- `techCatalog.jsonl`: every technology found in the data, with its source and editable annotations. See below.
+- `tech-catalog.jsonl`: every technology found in the data, with its source and editable annotations. See below.
 
 Without any `COMMIT_HISTORY_*.jsonl`, `all_commits.jsonl` is not created and records are still generated, but `date`, `author`, `title` and `branches` stay empty.
 
 ### Step 3: Feed the front-end
 
-Copy `reports-public.jsonl` and `techCatalog.jsonl` into the front-end's `src/data/` folder ([`<FRONT_APP_REPO_URL>`](<FRONT_APP_REPO_URL>)), replacing the default example data. Do not copy any other file.
+Copy `reports-public.jsonl` and `tech-catalog.jsonl` into the front-end's `src/data/` folder ([`<FRONT_APP_REPO_URL>`](<FRONT_APP_REPO_URL>)), replacing the default example data. Do not copy any other file.
+
+The front-end is read-only: it never edits or deletes anything. All annotations are made in `tech-catalog.jsonl`, by hand.
 
 ## The tech catalog
 
@@ -171,14 +173,14 @@ The sync is **append-only**:
 ### What you have to do
 
 1. Run `python scripts/main.py`.
-2. Open `techCatalog.jsonl` and **clean it**: it contains everything, including noise (`@types/*`, eslint plugins, build tooling). Delete the lines you do not want to show.
+2. Open `tech-catalog.jsonl` and **clean it**: it contains everything, including noise (`@types/*`, eslint plugins, build tooling). Delete the lines you do not want to show.
 3. For the lines you keep, set `category` (the default `Frontend` is wrong for most backend, database and docker entries), `reason` and `importance`.
 4. Copy the file into the front-end's `src/data/`.
 5. After each new run, look at the lines appended after the three empty lines and do the same.
 
 ### What you could forget
 
-- **Keep a single source of truth.** `main.py` reads and appends to the `techCatalog.jsonl` at the root of rai.gk. If you edit the copy in the front-end and then run `main.py`, the sync starts from the old root file and a later copy back to the front-end **overwrites your annotations**. Either edit the root file and copy it over, or copy the front-end's file back to the root before every run.
+- **Keep a single source of truth.** `main.py` reads and appends to the `tech-catalog.jsonl` at the root of rai.gk. If you edit the copy in the front-end and then run `main.py`, the sync starts from the old root file and a later copy back to the front-end **overwrites your annotations**. Either edit the root file and copy it over, or copy the front-end's file back to the root before every run.
 - **Back it up.** It holds manual work that cannot be regenerated. Do not delete it to "reset" it, and version it (it is not in the `.gitignore` list above).
 - **Keep it valid JSONL.** One JSON object per line, double quotes, no trailing comma, quotes escaped inside `reason`. The blank lines are fine. A broken line is skipped with a warning and the technology is then considered missing, so it gets appended again as a duplicate.
 - **`reason` is public** once the file is in the front-end bundle. No client names or confidential details.
@@ -251,7 +253,7 @@ Everything is JSONL: one JSON object per line. Lists and dicts stay native (no f
 
 ### Tech catalog (front-end)
 
-`techCatalog.jsonl`, one line per technology and source. See [The tech catalog](#the-tech-catalog).
+`tech-catalog.jsonl`, one line per technology and source. See [The tech catalog](#the-tech-catalog).
 
 ## Customization
 
@@ -263,8 +265,9 @@ Everything is JSONL: one JSON object per line. Lists and dicts stay native (no f
 ## Changelog
 
 ### v0.5.0
-- `techCatalog.jsonl`: generated by `main.py` from every technology in the data, with its `source` (`npm`, `python`, `docker`) and editable `category`, `reason`, `importance`.
+- `tech-catalog.jsonl`: generated by `main.py` from every technology in the data, with its `source` (`npm`, `python`, `docker`) and editable `category`, `reason`, `importance`.
 - Append-only sync: new technologies go at the end after three empty lines, existing annotations are never overwritten, no duplicates.
+- Output files renamed in kebab-case: `reports-full.jsonl`, `reports-public.jsonl`, `tech-catalog.jsonl`.
 - Record building moved to `scripts/utils_records.py`.
 
 ### v0.4.0
