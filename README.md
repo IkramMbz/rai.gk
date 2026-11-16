@@ -34,7 +34,7 @@
 
 **rai.gk** is the first building block of a pipeline designed to give developers credit for work done in private repositories. Client projects, NDAs, GitLab-only projects, deleted repositories. Work that never appears on their public GitHub contribution graph, despite being real, dated and shippable.
 
-The end goal is a "making of" front-end that displays how your app evolved: stack, services and milestones over time. The reference implementation is here: **[`<FRONT_APP_REPO_URL>`](<FRONT_APP_REPO_URL>)**.
+The end goal is a "making of" front-end that displays how your app evolved: stack, services and milestones over time. The reference implementation is here: **[`DEMO`](<[FRONT_APP_REPO_URL](https://mo.mbechezi.fr/)>)**.
 
 It works in three steps:
 
