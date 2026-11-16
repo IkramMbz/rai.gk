@@ -1,5 +1,5 @@
 <div align="center">
-  <h1>rai.gk</h1>
+  <h1>rai.gk by Glitch Kids</h1>
 
   <p>
     <strong>Repository Activity Inspector.</strong>
