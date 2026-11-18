@@ -17,7 +17,7 @@
   <p>
     <a href="https://github.com/IkramMbz/rai.gk/tree/main"><img src="https://img.shields.io/badge/release-v0.5.0-white" alt="Release v0.5.0"></a>
     <a href="https://glitchkids.space/"><img src="https://img.shields.io/badge/Glitch%20Kids-Suite-black" alt="Glitch Kids Suite"></a>
-    <a href="[https://github.com/IkramMbz/rai.gk/blob/main/LICENSE.md](https://github.com/IkramMbz/rai.gk/blob/main/LICENSE.md)"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT License"></a>
+    <a href="https://github.com/IkramMbz/rai.gk/blob/main/LICENSE.md"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT License"></a>
   </p>
 
   <p>
