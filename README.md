@@ -2,7 +2,7 @@
   <a href="https://github.com/IkramMbz/nakas.gk">
     <img
       src="assets/media/img/rai-gk-banner.png"
-      alt="nakas.gk Logo"
+      alt="rai.gk Logo"
     >
   </a>
 
@@ -16,6 +16,7 @@
 
   <p>
     <img src="https://img.shields.io/badge/release-v0.5.0-white" alt="Release v0.5.0">
+    <img src="https://img.shields.io/badge/Glitch%20Kids-Suite-black" alt="Glitch Kids Suite">
     <img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT License">
   </p>
 
