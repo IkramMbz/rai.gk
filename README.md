@@ -1,4 +1,11 @@
 <div align="center">
+  <a href="https://github.com/IkramMbz/nakas.gk">
+    <img
+      src="assets/media/img/nakas-gk-banner.jpg"
+      alt="nakas.gk Logo"
+    >
+  </a>
+
   <h1>rai.gk by Glitch Kids</h1>
 
   <p>
